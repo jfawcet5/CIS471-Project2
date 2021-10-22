@@ -73,8 +73,39 @@ class ReflexAgent(Agent):
         newGhostStates = successorGameState.getGhostStates()
         newScaredTimes = [ghostState.scaredTimer for ghostState in newGhostStates]
 
-        "*** YOUR CODE HERE ***"
-        return successorGameState.getScore()
+        "*** YOUR CODE HERE ***"   
+        fdist = 99999 # Initial closest food distance
+        M = newFood.height
+        N = newFood.width
+        for i in range(N):
+            for j in range(M):
+                if newFood[i][j]:
+                    d = manhattanDistance(newPos, (i, j))
+                    if d < fdist:
+                        fdist = d # new closest food distance
+
+        f1 = 1 / (fdist + 1) # Larger value of f1 for closer food
+
+        f2 = max(newScaredTimes) # Not entirely sure what newScaredTimes is, but Im taking the largest one
+
+        # List of adjacent positions to pacman
+        adjacentPos = [(newPos[0] - 1, newPos[1]), (newPos[0] + 1, newPos[1]), (newPos[0], newPos[1] - 1), (newPos[0], newPos[1] + 1)]
+
+        f3 = 1 # f3 is related to how close the ghosts are to pacman
+        for ghost in newGhostStates:
+            gpos = ghost.getPosition()
+            if (newPos == gpos): # If pacman's position overlaps a ghosts position
+                f3 = 0 # f3 is 0 because pacman on same position as ghost = lose
+                break;
+            for pos in adjacentPos:
+                if gpos == pos: # If ghost is adjacent to pacman
+                    f3 = 0 # f3 is 0 because we do not want to be directly next to ghost
+                    break;
+
+        if (f3 == 0): # if f3 = 0, there is a very high chance of losing ==> return low value
+            return 0
+
+        return successorGameState.getScore() + .1*f1 + .3*f2 + .6*f3 # return weighted sum of features
 
 def scoreEvaluationFunction(currentGameState):
     """
@@ -161,8 +192,90 @@ class ExpectimaxAgent(MultiAgentSearchAgent):
         All ghosts should be modeled as choosing uniformly at random from their
         legal moves.
         """
-        "*** YOUR CODE HERE ***"
-        util.raiseNotDefined()
+        self.numAgents = gameState.getNumAgents() # Number of agents, including pacman and all ghosts
+
+        self.stopPoint = (self.numAgents * self.depth) # How many calls to self.value() before reaching maximum depth
+
+        maxV, bestMove = -9999999, None # Current maximum expected utility and best move so far
+
+        legalMoves = gameState.getLegalActions(0) # Available moves at the beginning state
+
+        for move in legalMoves: # Iterate through available moves
+
+            curState = gameState.generateSuccessor(0, move) # generate new state based on current move
+            
+            curVal = self.value(curState, 1, 1) # Run expectimax search on current state to get maximum expected value
+
+            if curVal > maxV: # If the calculated expected utility for the current state is higher than 'maxV'
+
+                maxV, bestMove = curVal, move # Save new values of 'maxV' and 'bestMove'
+
+        return bestMove # return the move with the highest expected utility
+
+    def value(self, gameState, curAgent, curdepth):
+        """ value() function based on pseudocode from lecture slides. Makes recursive 
+            calls to self.max_value() and self.exp_value() until the stopping point
+            (maximum depth) has been reached. 
+
+            'gameState' is the current game state
+            'curAgent' is the current agent that is taking action (0 = pacman, 1+ = ghost)
+            'curdepth' records the depth of the recursive calls to limit depth
+        """
+        if gameState.isWin() or gameState.isLose() or (curdepth == self.stopPoint):
+            return self.evaluationFunction(gameState)
+
+        if curAgent == 0:
+            return self.max_value(gameState, curAgent, curdepth)
+        else:
+            return self.exp_value(gameState, curAgent, curdepth)
+
+    def max_value(self, gameState, curAgent, curdepth):
+        """ max_value() function based on pseudocode from lecture slides. Returns
+            the maximum value of the current gameState based on recursive calls to 
+            self.value()
+
+            'gameState' is the current game state
+            'curAgent' is the current agent that is taking action (0 = pacman, 1+ = ghost)
+            'curdepth' records the depth of the recursive calls to limit depth
+        """
+        v = -999999, # Initial highest expected utility 
+
+        legalMoves = gameState.getLegalActions(curAgent) # Available moves to current agent
+
+        for move in legalMoves: # Iterate through legal moves
+
+            newState = gameState.generateSuccessor(curAgent, move) # Generate new state based on current move/action
+
+            newV = self.value(newState, (curAgent + 1) % self.numAgents, curdepth + 1) # Calculate maximum expected value for 'newState'
+
+            if newV > v: # If new expected value is higher than max
+
+                v = newV # Save new expected value as max
+
+        return v # return maximum expected value 
+
+    def exp_value(self, gameState, curAgent, curdepth):
+        """ exp_value() function based on pseudocode from lecture slides. Returns
+            the expected value of the current gameState based on recursive calls to 
+            self.value()
+
+            'gameState' is the current game state
+            'curAgent' is the current agent that is taking action (0 = pacman, 1+ = ghost)
+            'curdepth' records the depth of the recursive calls to limit depth
+        """
+        v = 0 # Initial expected utility
+
+        legalMoves = gameState.getLegalActions(curAgent) # Available moves to current agent
+
+        p = 1 / (len(legalMoves)) # Uniform probability for each legal move
+
+        for move in legalMoves: # Iterate through legal moves
+
+            newState = gameState.generateSuccessor(curAgent, move) # Generate new state based on current move/action
+
+            v += p * self.value(newState, (curAgent + 1) % self.numAgents, curdepth + 1) # Add (probability * calculated expected utility) to v
+
+        return v # Return expected utility
 
 def betterEvaluationFunction(currentGameState):
     """
