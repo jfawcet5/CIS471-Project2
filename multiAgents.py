@@ -12,6 +12,7 @@
 # Pieter Abbeel (pabbeel@cs.berkeley.edu).
 
 
+from pacman import GameState
 from util import manhattanDistance
 from game import Directions
 import random, util
@@ -166,7 +167,37 @@ class MinimaxAgent(MultiAgentSearchAgent):
         Returns whether or not the game state is a losing state
         """
         "*** YOUR CODE HERE ***"
-        util.raiseNotDefined()
+        self.cur_depth = 0
+        self.numAgents = gameState.getNumAgents()
+
+        def minimaxSearch(state, index, depth):
+            (value, move) = maxValue(state, index, depth)
+            return move
+
+        def maxValue(state, index, depth):
+            if state.isWin() or state.isLose() or depth == self.depth:
+                return (self.evaluationFunction(state), None)
+            
+            index %= (self.numAgents - 1)
+            v = float('-inf')
+            for action in state.getLegalActions(index):
+                v2, a2 = minValue(state.generateSuccessor(index, action), index, depth+1)
+                if v2 > v:
+                    (v, move) = (v2, action)
+            return (v, move)
+
+        def minValue(state, index, depth):
+            if state.isWin() or state.isLose() or depth == self.depth:
+                return (self.evaluationFunction(state), None)
+            v = float('inf')
+            for action in state.getLegalActions(index):
+                v2, a2, = maxValue(state.generateSuccessor(index, action), index + 1, depth)
+                if v2 < v:
+                    (v, move) = (v2, action)
+            return (v, move)
+
+        return minimaxSearch(gameState, self.index, self.cur_depth)
+        #util.raiseNotDefined()
 
 class AlphaBetaAgent(MultiAgentSearchAgent):
     """
@@ -238,7 +269,7 @@ class ExpectimaxAgent(MultiAgentSearchAgent):
             'curAgent' is the current agent that is taking action (0 = pacman, 1+ = ghost)
             'curdepth' records the depth of the recursive calls to limit depth
         """
-        v = -999999, # Initial highest expected utility 
+        v = -999999 # Initial highest expected utility 
 
         legalMoves = gameState.getLegalActions(curAgent) # Available moves to current agent
 
