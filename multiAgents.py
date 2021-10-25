@@ -365,9 +365,48 @@ def betterEvaluationFunction(currentGameState):
     evaluation function (question 5).
 
     DESCRIPTION: <write something here so we know what you did>
+    This process is similar to the evaluation used in ReflexAgent, but it
+    doesn't any successor gamestates.
     """
     "*** YOUR CODE HERE ***"
-    util.raiseNotDefined()
+    curPos = currentGameState.getPacmanPosition()
+    newFood = currentGameState.getFood()
+    curGhostStates = currentGameState.getGhostStates()
+    curScaredTimes = [ghostState.scaredTimer for ghostState in curGhostStates]
+
+    "*** YOUR CODE HERE ***"   
+    fdist = 99999 # Initial closest food distance
+    M = newFood.height
+    N = newFood.width
+    for i in range(N):
+        for j in range(M):
+            if newFood[i][j]:
+                d = manhattanDistance(curPos, (i, j))
+                if d < fdist:
+                    fdist = d # new closest food distance
+
+    f1 = 1 / (fdist + 1) # Larger value of f1 for closer food
+
+    f2 = max(curScaredTimes) # Not entirely sure what newScaredTimes is, but Im taking the largest one
+
+    # List of adjacent positions to pacman
+    adjacentPos = [(curPos[0] - 1, curPos[1]), (curPos[0] + 1, curPos[1]), (curPos[0], curPos[1] - 1), (curPos[0], curPos[1] + 1)]
+
+    f3 = 1 # f3 is related to how close the ghosts are to pacman
+    for ghost in curGhostStates:
+        gpos = ghost.getPosition()
+        if (curPos == gpos): # If pacman's position overlaps a ghosts position
+            f3 = 0 # f3 is 0 because pacman on same position as ghost = lose
+            break;
+        for pos in adjacentPos:
+            if gpos == pos: # If ghost is adjacent to pacman
+                f3 = 0 # f3 is 0 because we do not want to be directly next to ghost
+                break;
+
+    if (f3 == 0): # if f3 = 0, there is a very high chance of losing ==> return low value
+        return 0
+
+    return currentGameState.getScore() + .1*f1 + .3*f2 + .6*f3
 
 # Abbreviation
 better = betterEvaluationFunction
