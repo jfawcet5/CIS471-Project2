@@ -368,7 +368,6 @@ def betterEvaluationFunction(currentGameState):
     This process is similar to the evaluation used in ReflexAgent, but it
     doesn't any successor gamestates.
     """
-    "*** YOUR CODE HERE ***"
     curPos = currentGameState.getPacmanPosition()
     newFood = currentGameState.getFood()
     curGhostStates = currentGameState.getGhostStates()
@@ -387,26 +386,46 @@ def betterEvaluationFunction(currentGameState):
 
     f1 = 1 / (fdist + 1) # Larger value of f1 for closer food
 
-    f2 = max(curScaredTimes) # Not entirely sure what newScaredTimes is, but Im taking the largest one
+    avgScaredTime = 0
+
+    for time in curScaredTimes:
+        avgScaredTime += time
+
+    avgScaredTime = avgScaredTime / len(curScaredTimes)
+
+    #f2 = max(curScaredTimes) # Not entirely sure what newScaredTimes is, but Im taking the largest one
+    f2 = avgScaredTime
 
     # List of adjacent positions to pacman
     adjacentPos = [(curPos[0] - 1, curPos[1]), (curPos[0] + 1, curPos[1]), (curPos[0], curPos[1] - 1), (curPos[0], curPos[1] + 1)]
 
+
+    minGhostDist = 99999
+
     f3 = 1 # f3 is related to how close the ghosts are to pacman
     for ghost in curGhostStates:
         gpos = ghost.getPosition()
+        curGhostDist = manhattanDistance(curPos, gpos)
+
+        if (curGhostDist < minGhostDist):
+            minGhostDist = curGhostDist
+
         if (curPos == gpos): # If pacman's position overlaps a ghosts position
-            f3 = 0 # f3 is 0 because pacman on same position as ghost = lose
+            f3 = 0.1 # f3 is 0 because pacman on same position as ghost = lose
             break;
         for pos in adjacentPos:
             if gpos == pos: # If ghost is adjacent to pacman
-                f3 = 0 # f3 is 0 because we do not want to be directly next to ghost
+                f3 = 0.1 # f3 is 0 because we do not want to be directly next to ghost
                 break;
 
-    if (f3 == 0): # if f3 = 0, there is a very high chance of losing ==> return low value
-        return 0
+    f5 = 10 / (minGhostDist + 1) + f3
 
-    return currentGameState.getScore() + .1*f1 + .3*f2 + .6*f3
+    if (f3 == 0): # if f3 = 0, there is a very high chance of losing ==> return low value
+        #return 0
+        pass
+
+    #return currentGameState.getScore() + .325*f1 + .275*f2 + .4*f3
+    return 0.1*currentGameState.getScore() + .35*f1 + 0.06*f2 + .45*f3 + .15*f5
 
 # Abbreviation
 better = betterEvaluationFunction
